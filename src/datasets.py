@@ -150,10 +150,10 @@ class TripletCsvDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.triplets.iloc[idx]
-        a = np.load(row['anchor'])
-        n = np.load(row['neighbor'])
-        d = np.load(row['distant'])
-        sample = {'anchor': a, 'neighbor': n, 'distant': d}
+        a = np.nan_to_num(np.load(row['anchor']), nan=0.0, posinf=0.0, neginf=0.0)
+        n = np.nan_to_num(np.load(row['neighbor']), nan=0.0, posinf=0.0, neginf=0.0)
+        d = np.nan_to_num(np.load(row['distant']), nan=0.0, posinf=0.0, neginf=0.0)
+        sample = {'anchor': a.astype(np.float32), 'neighbor': n.astype(np.float32), 'distant': d.astype(np.float32)}
         if self.transform:
             sample = self.transform(sample)
         return sample
