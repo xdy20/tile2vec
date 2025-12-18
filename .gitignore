@@ -1,7 +1,6 @@
 # Data
 data/
 *.tif
-scripts/
 outputs/
 
 # Models
