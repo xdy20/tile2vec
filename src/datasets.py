@@ -1,9 +1,11 @@
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torch
+import torch.nn.functional as F
 import glob
 import os
 import numpy as np
+import pandas as pd
 from src.data_utils import clip_and_scale_image
 
 
@@ -131,6 +133,86 @@ def triplet_dataloader(img_type, tile_dir, bands=4, augment=True,
         n_triplets=n_triplets, pairs_only=pairs_only)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
         num_workers=num_workers)
+    return dataloader
+
+
+class TripletCsvDataset(Dataset):
+
+    def __init__(self, csv_path, transform=None, n_triplets=None, random_seed=42):
+        self.triplets = pd.read_csv(csv_path)
+        if n_triplets is not None and n_triplets < len(self.triplets):
+            self.triplets = self.triplets.sample(
+                n=n_triplets, random_state=random_seed).reset_index(drop=True)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.triplets)
+
+    def __getitem__(self, idx):
+        row = self.triplets.iloc[idx]
+        a = np.load(row['anchor'])
+        n = np.load(row['neighbor'])
+        d = np.load(row['distant'])
+        sample = {'anchor': a, 'neighbor': n, 'distant': d}
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
+
+
+class ResizeTile(object):
+    """
+    Resizes tiles to a fixed (height, width) using bilinear interpolation.
+    """
+    def __init__(self, size):
+        if isinstance(size, int):
+            size = (size, size)
+        self.size = size
+
+    def _resize(self, arr):
+        tensor = torch.from_numpy(arr).unsqueeze(0)
+        tensor = F.interpolate(
+            tensor.float(), size=self.size, mode='bilinear', align_corners=False)
+        return tensor.squeeze(0).numpy()
+
+    def __call__(self, sample):
+        a = self._resize(sample['anchor'])
+        n = self._resize(sample['neighbor'])
+        d = self._resize(sample['distant'])
+        return {'anchor': a, 'neighbor': n, 'distant': d}
+
+
+def triplet_csv_dataloader(
+    triplets_csv,
+    img_type='landsat',
+    bands=4,
+    target_size=104,
+    augment=True,
+    batch_size=32,
+    shuffle=True,
+    num_workers=4,
+    n_triplets=None,
+):
+    transform_list = []
+    if target_size:
+        transform_list.append(ResizeTile(target_size))
+    if img_type in ['landsat', 'naip']:
+        transform_list.append(GetBands(bands))
+    transform_list.append(ClipAndScale(img_type))
+    if augment:
+        transform_list.append(RandomFlipAndRotate())
+    transform_list.append(ToFloatTensor())
+    transform = transforms.Compose(transform_list)
+    dataset = TripletCsvDataset(
+        triplets_csv,
+        transform=transform,
+        n_triplets=n_triplets,
+    )
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+    )
     return dataloader
 
     

@@ -1,5 +1,5 @@
 import numpy as np
-from time import time
+import time
 from torch.autograd import Variable
 from src.datasets import triplet_dataloader
 
@@ -30,10 +30,10 @@ def train_triplet_epoch(model, cuda, dataloader, optimizer, epoch, margin=1,
         loss, l_n, l_d, l_nd = model.loss(p, n, d, margin=margin, l2=l2)
         loss.backward()
         optimizer.step()
-        sum_loss += loss.data[0]
-        sum_l_n += l_n.data[0]
-        sum_l_d += l_d.data[0]
-        sum_l_nd += l_nd.data[0]
+        sum_loss += loss.item()
+        sum_l_n += l_n.item()
+        sum_l_d += l_d.item()
+        sum_l_nd += l_nd.item()
         if (idx + 1) * dataloader.batch_size % print_every == 0:
             print_avg_loss = (sum_loss - print_sum_loss) / (
                 print_every / dataloader.batch_size)
@@ -45,7 +45,7 @@ def train_triplet_epoch(model, cuda, dataloader, optimizer, epoch, margin=1,
     avg_l_n = sum_l_n / n_batches
     avg_l_d = sum_l_d / n_batches
     avg_l_nd = sum_l_nd / n_batches
-    print('Finished epoch {}: {:0.3f}s'.format(epoch, time()-t0))
+    print('Finished epoch {}: {:0.3f}s'.format(epoch, time.time()-t0))
     print('  Average loss: {:0.4f}'.format(avg_loss))
     print('  Average l_n: {:0.4f}'.format(avg_l_n))
     print('  Average l_d: {:0.4f}'.format(avg_l_d))

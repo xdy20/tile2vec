@@ -5,6 +5,7 @@ outputs/
 
 # Models
 *.ckpt
+*.pth
 
 # Random files
 *.pyc
