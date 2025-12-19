@@ -7,6 +7,9 @@ outputs/
 *.ckpt
 *.pth
 
+# Bash commands
+*.sh
+
 # Random files
 *.pyc
 *nfs*
