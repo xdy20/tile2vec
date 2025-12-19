@@ -15,3 +15,4 @@ outputs/
 *nfs*
 *DS*
 examples/.ipynb_checkpoints*
+*.log
